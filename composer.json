@@ -13,7 +13,8 @@
         "tymon/jwt-auth": "^0.5.9",
         "vluzrmos/slack-api": "^0.4.8",
         "cdaguerre/php-trello-api": "@dev",
-        "league/flysystem-aws-s3-v3": "^1.0"
+        "league/flysystem-aws-s3-v3": "^1.0",
+        "guzzlehttp/guzzle": "~6.0"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

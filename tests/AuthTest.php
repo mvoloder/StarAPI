@@ -4,13 +4,15 @@ namespace
 
 {
 
+    use App\Profile;
     use Illuminate\Foundation\Testing\DatabaseMigrations;
     use Illuminate\Foundation\Testing\WithoutMiddleware;
+    use Illuminate\Support\Facades\Auth;
 
     class AuthTest extends TestCase
     {
         use DatabaseMigrations;
-        use WithoutMiddleware;
+//        use WithoutMiddleware;
         /**
          * Test invalid login attempt
          */
@@ -40,10 +42,9 @@ namespace
          */
         public function testEmptyRequestOnRegistration()
         {
-            $this->markTestIncomplete('Registration test not implemented yet.');
+            $this->json('POST', '/api/v1/app/starapi-testing/register', []);
 
-            $this->json('POST', '/api/v1/app/starapi-testing/register', [])
-                ->see('oblah');
+            $this->assertResponseStatus(401);
         }
 
         public function testValidRegistration()
@@ -179,41 +180,75 @@ namespace
             $this->assertResponseStatus(400);
         }
 
-        public function testDeleteProfileNotAdmin()
+        public function testDeleteProfileNotLoggedIn()
         {
             $this->json(
                 'DELETE',
-                'api/v1/app/starapi-testing/profiles',
+                '/api/v1/app/starapi-testing/profiles',
                 [
-                    '_id' => '587636ca263add33d5675c3e'
+                    '_id' => '58779e89263add372e348550'
                 ]
             );
-//            $this->seeJsonEquals([
-//                'error' => true,
-//                'errors' => 'Not enough permissions.'
-//            ]);
 
             $this->assertResponseStatus(403);
+        }
+        
+        public function testDelete()
+        {
+            $profiles = Profile::all();
+
+            foreach ($profiles as $profile) {
+                if ($profile->admin === true) {
+                    $this->call(
+                        'DELETE',
+                        '/api/v1/app/starapi-testing/profiles/5877a316263add382366d9c0',
+                        [],
+                        [],
+                        [],
+                        [
+                            'HTTP_Authorization' => $this->getToken()
+                        ]
+                    );
+                }
+            }
+
+
+            $this->assertResponseStatus(200);
         }
 
         public function testShowProfiles()
         {
-            $this->json('GET', 'api/v1/app/starapi-testing/profiles');
+
+            $this->json(
+                'GET',
+                'api/v1/app/starapi-testing/profiles',
+                [],
+                [
+                    'Authorization' => $this->getToken()
+                ]
+            );
+
+            $this->assertResponseOk();
         }
 
-//        public function testUserNotFound()
-//        {
-//            $this->json('GET', 'api/v1/app/starapi-testing/profiles', [
-//                'id' => '32452345'
-//            ]);
-//
-//            $this->seeJsonEquals([
-//                'error' => true,
-//                'errors' => ['User not found.']
-//            ]);
-//
-//            $this->assertResponseStatus(404);
-//
-//        }
+        public function testUserNotFound()
+        {
+
+            $this->json(
+                'GET',
+                'api/v1/app/starapi-testing/profiles/2343423',
+                [],
+                [
+                    'Authorization' => $this->getToken()
+                ]
+            );
+
+            $this->seeJsonEquals([
+               'error' => true,
+                'errors' => ["User not found."]
+            ]);
+
+            $this->assertResponseStatus(404);
+        }
     }
 }
