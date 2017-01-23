@@ -10,7 +10,17 @@ namespace {
     {
         use DatabaseMigrations;
 
+        protected $token;
+
+        public function setToken($token)
+        {
+            $this->token = $token;
+
+            return $this->token = $this->testValidLogin();
+        }
+
         /**
+         *
          * Test invalid login attempt
          */
         public function testEmptyRequestOnLogin()
@@ -48,9 +58,10 @@ namespace {
                     'password',
                     'repeat password'
                 ]
-            );
-
-            $this->assertResponseStatus(401);
+            )->seeJsonEquals([
+                'error' => true,
+                'errors' => ['Issue with automatic sign in.']
+            ]);
         }
 
         public function testValidRegistration()
@@ -67,15 +78,13 @@ namespace {
                     'password' => 'marko123',
                     'repeat password' => 'marko123'
                 ]
-            );
-
-            $this->assertResponseStatus(400);
+            )->seeJsonEquals([
+                'errors' => ['The email has already been taken.']
+            ]);
         }
 
         public function testValidLogin()
         {
-            $profile = factory(App\Profile::class)->make();
-
             $resp = $this->json(
                 'POST',
                 '/api/v1/app/starapi-testing/login',
@@ -89,11 +98,25 @@ namespace {
 
             $headers = $this->response->headers;
 
-            $token = $headers->get('Authorization');
+            $jwt = $headers->get('Authorization');
+
+            $this->token = $jwt;
+
+            if ($headers === null) {
+                $this->seeJsonEquals([
+                    'error' => true,
+                    'errors' => ['Authorization header not found.']
+                ]);
+            } elseif ($this->token === null) {
+                $this->seeJsonEquals([
+                    'error' => true,
+                    'errors' => ['JWT invalid']
+                ]);
+            }
 
             $this->assertResponseOk();
 
-            return $token;
+            return $this->token;
         }
 
         public function testWrongLoginPassword()
@@ -209,13 +232,12 @@ namespace {
 
         public function testUserNotFound()
         {
-
             $this->json(
                 'GET',
                 'api/v1/app/starapi-testing/profiles/2343423',
                 [],
                 [
-                    'Authorization' => $this->testValidLogin()
+                    'Authorization' => $this->setToken($this->token)
                 ]
             );
 
@@ -227,23 +249,8 @@ namespace {
             $this->assertResponseStatus(404);
         }
 
-        public function testChangePasswordUserNotFound()
-        {
-            $profiles = Profile::all();
-
-            foreach ($profiles as $profile) {
-                if (!$profile instanceof Profile) {
-                    $this->seeJsonEquals([
-                        'error' => true,
-                        'errors' => ['User not found.']
-                    ]);
-                }
-            }
-        }
-
         public function testChangePasswordInvalidOldPassword()
         {
-
             $this->json(
                 'PUT',
                 'api/v1/app/starapi-testing/profiles/changePassword',
@@ -253,7 +260,7 @@ namespace {
                     'repeatNewPassword' => 'marko1234'
                 ],
                 [
-                    'Authorization' => $this->testValidLogin()
+                    'Authorization' => $this->setToken($this->token)
                 ]
             );
 
@@ -275,7 +282,7 @@ namespace {
                     'repeatNewPassword' => 'marko1243'
                 ],
                 [
-                    'Authorization' => $this->testValidLogin()
+                    'Authorization' => $this->setToken($this->token)
                 ]
             );
 
@@ -296,7 +303,7 @@ namespace {
                     'repeatNewPassword' => 'marko1234'
                 ],
                 [
-                    'Authorization' => $this->getToken()
+                    'Authorization' => $this->setToken($this->token)
                 ]
             );
 
@@ -305,7 +312,6 @@ namespace {
 
         public function testProfileUpdate()
         {
-
             $profiles = Profile::all();
 
             foreach ($profiles as $profile) {
@@ -318,14 +324,14 @@ namespace {
                 } else {
                     $this->json(
                         'PUT',
-                        'api/v1/app/starapi-testing/profiles/5885d6cd263add3c9748a9c2',
+                        'api/v1/app/starapi-testing/profiles/588608b9263add62846f1602',
                         [
                             'slack' => 'test2Slack',
                             'trello' => 'test2Trello',
                             'github' => 'test2Git'
                         ],
                         [
-                            'Authorization' => $this->testValidLogin()
+                            'Authorization' => $this->setToken($this->token)
                         ]
                     );
 
@@ -339,22 +345,20 @@ namespace {
             $profiles = Profile::all();
 
             foreach ($profiles as $profile) {
-                if ($profile instanceof Profile) {
+                if (!$profile instanceof Profile) {
+                    $this->assertResponseStatus(404);
+                    break;
+                } elseif ($profile->admin === true) {
                     $this->json(
                         'DELETE',
-                        '/api/v1/app/starapi-testing/profiles/5885d7c4263add3e331664f3',
+                        '/api/v1/app/starapi-testing/profiles/588608b9263add62846f1602',
                         [],
                         [
-                            'Authorization' => $this->testValidLogin()
+                            'Authorization' => $this->setToken($this->token)
                         ]
                     );
-                    if (!$profile instanceof Profile) {
-                        $this->assertResponseStatus(404);
-                        break;
-                    } elseif ($profile->admin === true) {
-                        $this->assertResponseStatus(200);
-                        break;
-                    }
+                    $this->assertResponseStatus(200);
+                    break;
                 }
             }
         }
