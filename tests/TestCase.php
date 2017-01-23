@@ -30,39 +30,5 @@ namespace
 
             return $app;
         }
-
-        protected function getAuthenticatedUser()
-        {
-            $user = $this->json(
-                'POST',
-                '/api/v1/app/starapi-testing/login',
-                [
-                    'email' => 'marko@marko.com',
-                    'password' => 'marko123'
-                ]
-            );
-
-            return $user;
-        }
-
-        protected function getToken()
-        {
-            $client = new GuzzleHttp\Client();
-
-            $formParams = ['email' => 'marko@marko.com', 'password' => 'marko123'];
-
-            $res = $client->request(
-                'POST',
-                'http://starapi.public/api/v1/app/starapi-testing/login',
-                [
-                'form_params' => $formParams
-                ]
-            );
-
-            $headers = $res->getHeaders();
-            $token = $headers['Authorization'][0];
-
-            return $token;
-        }
     }
 }

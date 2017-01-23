@@ -1,18 +1,15 @@
 <?php
 
-namespace
-
-{
+namespace {
 
     use App\Profile;
     use Illuminate\Foundation\Testing\DatabaseMigrations;
     use Illuminate\Foundation\Testing\WithoutMiddleware;
-    use Illuminate\Support\Facades\Auth;
 
     class AuthTest extends TestCase
     {
         use DatabaseMigrations;
-//        use WithoutMiddleware;
+
         /**
          * Test invalid login attempt
          */
@@ -42,7 +39,16 @@ namespace
          */
         public function testEmptyRequestOnRegistration()
         {
-            $this->json('POST', '/api/v1/app/starapi-testing/register', []);
+            $this->json(
+                'POST',
+                '/api/v1/app/starapi-testing/register',
+                [
+                    'name',
+                    'email',
+                    'password',
+                    'repeat password'
+                ]
+            );
 
             $this->assertResponseStatus(401);
         }
@@ -63,23 +69,31 @@ namespace
                 ]
             );
 
-            $this->seeJsonEquals([
-                'errors' => ['The email has already been taken.']
-            ]);
+            $this->assertResponseStatus(400);
         }
 
         public function testValidLogin()
         {
-            $this->json(
+            $profile = factory(App\Profile::class)->make();
+
+            $resp = $this->json(
                 'POST',
                 '/api/v1/app/starapi-testing/login',
                 [
-                   'email' => 'marko@marko.com',
+                    'email' => 'marko@marko.com',
                     'password' => 'marko123'
                 ]
             );
 
-            $this->assertResponseStatus(200);
+            $resp->seeHeader('Authorization');
+
+            $headers = $this->response->headers;
+
+            $token = $headers->get('Authorization');
+
+            $this->assertResponseOk();
+
+            return $token;
         }
 
         public function testWrongLoginPassword()
@@ -192,44 +206,6 @@ namespace
 
             $this->assertResponseStatus(403);
         }
-        
-        public function testDelete()
-        {
-            $profiles = Profile::all();
-
-            foreach ($profiles as $profile) {
-                if ($profile->admin === true) {
-                    $this->call(
-                        'DELETE',
-                        '/api/v1/app/starapi-testing/profiles/5877a316263add382366d9c0',
-                        [],
-                        [],
-                        [],
-                        [
-                            'HTTP_Authorization' => $this->getToken()
-                        ]
-                    );
-                }
-            }
-
-
-            $this->assertResponseStatus(200);
-        }
-
-        public function testShowProfiles()
-        {
-
-            $this->json(
-                'GET',
-                'api/v1/app/starapi-testing/profiles',
-                [],
-                [
-                    'Authorization' => $this->getToken()
-                ]
-            );
-
-            $this->assertResponseOk();
-        }
 
         public function testUserNotFound()
         {
@@ -239,16 +215,148 @@ namespace
                 'api/v1/app/starapi-testing/profiles/2343423',
                 [],
                 [
-                    'Authorization' => $this->getToken()
+                    'Authorization' => $this->testValidLogin()
                 ]
             );
 
             $this->seeJsonEquals([
-               'error' => true,
+                'error' => true,
                 'errors' => ["User not found."]
             ]);
 
             $this->assertResponseStatus(404);
+        }
+
+        public function testChangePasswordUserNotFound()
+        {
+            $profiles = Profile::all();
+
+            foreach ($profiles as $profile) {
+                if (!$profile instanceof Profile) {
+                    $this->seeJsonEquals([
+                        'error' => true,
+                        'errors' => ['User not found.']
+                    ]);
+                }
+            }
+        }
+
+        public function testChangePasswordInvalidOldPassword()
+        {
+
+            $this->json(
+                'PUT',
+                'api/v1/app/starapi-testing/profiles/changePassword',
+                [
+                    'oldPassword' => 'marko1255',
+                    'newPassword' => 'marko1234',
+                    'repeatNewPassword' => 'marko1234'
+                ],
+                [
+                    'Authorization' => $this->testValidLogin()
+                ]
+            );
+
+
+            $this->seeJsonEquals([
+                'error' => true,
+                'errors' => ['Invalid old password']
+            ]);
+        }
+
+        public function testChangePasswordMissMatch()
+        {
+            $this->json(
+                'PUT',
+                'api/v1/app/starapi-testing/profiles/changePassword',
+                [
+                    'oldPassword' => 'marko123',
+                    'newPassword' => 'marko12345',
+                    'repeatNewPassword' => 'marko1243'
+                ],
+                [
+                    'Authorization' => $this->testValidLogin()
+                ]
+            );
+
+            $this->seeJsonEquals([
+                'error' => true,
+                'errors' => ['Passwords mismatch']
+            ]);
+        }
+
+        public function testChangePassword()
+        {
+//            $this->json(
+//                'PUT',
+//                'api/v1/app/starapi-testing/profiles/changePassword',
+//                [
+//                    'oldPassword' => 'marko123',
+//                    'newPassword' => 'marko1234',
+//                    'repeatNewPassword' => 'marko1234'
+//                ],
+//                [
+//                    'Authorization' => $this->getToken()
+//                ]
+//            );
+//
+//            $this->assertResponseOk();
+        }
+
+        public function testProfileUpdate()
+        {
+
+            $profiles = Profile::all();
+
+            foreach ($profiles as $profile) {
+                if (!$profile instanceof Profile) {
+                    $this->seeJsonEquals([
+                        'error' => true,
+                        'errors' => ['Model not found']
+                    ]);
+                    $this->assertResponseStatus(404);
+                } else {
+                    $this->json(
+                        'PUT',
+                        'api/v1/app/starapi-testing/profiles/5885d6cd263add3c9748a9c2',
+                        [
+                            'slack' => 'test2Slack',
+                            'trello' => 'test2Trello',
+                            'github' => 'test2Git'
+                        ],
+                        [
+                            'Authorization' => $this->testValidLogin()
+                        ]
+                    );
+
+                    $this->assertResponseOk();
+                }
+            }
+        }
+
+        public function testDelete()
+        {
+            $profiles = Profile::all();
+
+            foreach ($profiles as $profile) {
+                if ($profile instanceof Profile) {
+                    $this->json(
+                        'DELETE',
+                        '/api/v1/app/starapi-testing/profiles/5885d7c4263add3e331664f3',
+                        [],
+                        [
+                            'Authorization' => $this->testValidLogin()
+                        ]
+                    );
+                    if (!$profile instanceof Profile) {
+                        $this->assertResponseStatus(404);
+                        break;
+                    } elseif ($profile->admin === true) {
+                        $this->assertResponseStatus(200);
+                        break;
+                    }
+                }
+            }
         }
     }
 }
