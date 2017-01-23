@@ -287,20 +287,20 @@ namespace {
 
         public function testChangePassword()
         {
-//            $this->json(
-//                'PUT',
-//                'api/v1/app/starapi-testing/profiles/changePassword',
-//                [
-//                    'oldPassword' => 'marko123',
-//                    'newPassword' => 'marko1234',
-//                    'repeatNewPassword' => 'marko1234'
-//                ],
-//                [
-//                    'Authorization' => $this->getToken()
-//                ]
-//            );
-//
-//            $this->assertResponseOk();
+            $this->json(
+                'PUT',
+                'api/v1/app/starapi-testing/profiles/changePassword',
+                [
+                    'oldPassword' => 'marko123',
+                    'newPassword' => 'marko1234',
+                    'repeatNewPassword' => 'marko1234'
+                ],
+                [
+                    'Authorization' => $this->getToken()
+                ]
+            );
+
+            $this->assertResponseOk();
         }
 
         public function testProfileUpdate()
