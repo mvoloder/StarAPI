@@ -78,9 +78,15 @@ namespace {
                     'password' => 'marko123',
                     'repeat password' => 'marko123'
                 ]
-            )->seeJsonEquals([
-                'errors' => ['The email has already been taken.']
-            ]);
+            );
+
+            if ($this->seeInDatabase('profiles', ['email' => 'marko@marko.com']) === true) {
+                $this->seeJsonEquals([
+                    'errors' => ['The email has already been taken.']
+                ]);
+            } elseif ($this->seeInDatabase('profiles', ['email' => 'marko@marko.com']) === false) {
+                $this->assertResponseOk();
+            }
         }
 
         public function testValidLogin()
@@ -324,7 +330,7 @@ namespace {
                 } else {
                     $this->json(
                         'PUT',
-                        'api/v1/app/starapi-testing/profiles/588608b9263add62846f1602',
+                        'api/v1/app/starapi-testing/profiles/5886181c263add70570bd0e2',
                         [
                             'slack' => 'test2Slack',
                             'trello' => 'test2Trello',
