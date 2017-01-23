@@ -5,12 +5,22 @@ namespace {
     use App\Profile;
     use Illuminate\Foundation\Testing\DatabaseMigrations;
     use Illuminate\Foundation\Testing\WithoutMiddleware;
+    use Illuminate\Support\Facades\Auth;
 
     class AuthTest extends TestCase
     {
         use DatabaseMigrations;
 
         protected $token;
+        protected $id;
+        private $url = 'api/v1/app/starapi-testing/profiles/';
+
+        public function getUser($id)
+        {
+            $this->id = $id;
+
+            return $this->id = $this->testValidRegistration();
+        }
 
         public function setToken($token)
         {
@@ -64,6 +74,26 @@ namespace {
             ]);
         }
 
+        public function testInvalidRegistration()
+        {
+            $this->json(
+                'POST',
+                '/api/v1/app/starapi-testing/register',
+                [
+                    'name' => 'marko m',
+                    'email' => 'marko@marko.com',
+                    'password' => 'marko123',
+                    'repeat password' => 'marko123'
+                ]
+            );
+
+            if ($this->seeInDatabase('profiles', ['email' => 'marko@marko.com']) === true) {
+                $this->seeJsonEquals([
+                    'errors' => ['The email has already been taken.']
+                ]);
+            }
+        }
+
         public function testValidRegistration()
         {
             $this->seed(AclCollectionSeeder::class);
@@ -80,13 +110,11 @@ namespace {
                 ]
             );
 
-            if ($this->seeInDatabase('profiles', ['email' => 'marko@marko.com']) === true) {
-                $this->seeJsonEquals([
-                    'errors' => ['The email has already been taken.']
-                ]);
-            } elseif ($this->seeInDatabase('profiles', ['email' => 'marko@marko.com']) === false) {
-                $this->assertResponseOk();
-            }
+            $profile = Profile::where('email', '=', 'marko@marko.com')->first();
+
+            $this->id = $profile->id;
+
+            return $this->id;
         }
 
         public function testValidLogin()
@@ -318,32 +346,20 @@ namespace {
 
         public function testProfileUpdate()
         {
-            $profiles = Profile::all();
+            $this->json(
+                'PUT',
+                $this->url . $this->getUser($this->id),
+                [
+                    'slack' => 'testSlack',
+                    'trello' => 'testTrello',
+                    'github' => 'testGit'
+                ],
+                [
+                    'Authorization' => $this->setToken($this->token)
+                ]
+            );
 
-            foreach ($profiles as $profile) {
-                if (!$profile instanceof Profile) {
-                    $this->seeJsonEquals([
-                        'error' => true,
-                        'errors' => ['Model not found']
-                    ]);
-                    $this->assertResponseStatus(404);
-                } else {
-                    $this->json(
-                        'PUT',
-                        'api/v1/app/starapi-testing/profiles/5886181c263add70570bd0e2',
-                        [
-                            'slack' => 'test2Slack',
-                            'trello' => 'test2Trello',
-                            'github' => 'test2Git'
-                        ],
-                        [
-                            'Authorization' => $this->setToken($this->token)
-                        ]
-                    );
-
-                    $this->assertResponseOk();
-                }
-            }
+            $this->assertResponseOk();
         }
 
         public function testDelete()
@@ -357,7 +373,7 @@ namespace {
                 } elseif ($profile->admin === true) {
                     $this->json(
                         'DELETE',
-                        '/api/v1/app/starapi-testing/profiles/588608b9263add62846f1602',
+                        $this->url . $this->getUser($this->id),
                         [],
                         [
                             'Authorization' => $this->setToken($this->token)
