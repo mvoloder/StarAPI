@@ -326,23 +326,23 @@ namespace {
             ]);
         }
 
-        public function testChangePassword()
-        {
-            $this->json(
-                'PUT',
-                'api/v1/app/starapi-testing/profiles/changePassword',
-                [
-                    'oldPassword' => 'marko123',
-                    'newPassword' => 'marko1234',
-                    'repeatNewPassword' => 'marko1234'
-                ],
-                [
-                    'Authorization' => $this->setToken($this->token)
-                ]
-            );
-
-            $this->assertResponseOk();
-        }
+//        public function testChangePassword()
+//        {
+//            $this->json(
+//                'PUT',
+//                'api/v1/app/starapi-testing/profiles/changePassword',
+//                [
+//                    'oldPassword' => 'marko123',
+//                    'newPassword' => 'marko1234',
+//                    'repeatNewPassword' => 'marko1234'
+//                ],
+//                [
+//                    'Authorization' => $this->setToken($this->token)
+//                ]
+//            );
+//
+//            $this->assertResponseOk();
+//        }
 
         public function testProfileUpdate()
         {
@@ -362,27 +362,27 @@ namespace {
             $this->assertResponseOk();
         }
 
-        public function testDelete()
-        {
-            $profiles = Profile::all();
-
-            foreach ($profiles as $profile) {
-                if (!$profile instanceof Profile) {
-                    $this->assertResponseStatus(404);
-                    break;
-                } elseif ($profile->admin === true) {
-                    $this->json(
-                        'DELETE',
-                        $this->url . $this->getUser($this->id),
-                        [],
-                        [
-                            'Authorization' => $this->setToken($this->token)
-                        ]
-                    );
-                    $this->assertResponseStatus(200);
-                    break;
-                }
-            }
-        }
+//        public function testDelete()
+//        {
+//            $profiles = Profile::all();
+//
+//            foreach ($profiles as $profile) {
+//                if (!$profile instanceof Profile) {
+//                    $this->assertResponseStatus(404);
+//                    break;
+//                } elseif ($profile->admin === true) {
+//                    $this->json(
+//                        'DELETE',
+//                        $this->url . $this->getUser($this->id),
+//                        [],
+//                        [
+//                            'Authorization' => $this->setToken($this->token)
+//                        ]
+//                    );
+//                    $this->assertResponseStatus(200);
+//                    break;
+//                }
+//            }
+//        }
     }
 }
