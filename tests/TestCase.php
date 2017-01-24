@@ -3,6 +3,11 @@
 namespace
 
 {
+
+    use Guzzle\Http\Client;
+    use Illuminate\Support\Facades\Auth;
+    use Tymon\JWTAuth\JWTAuth;
+
     abstract class TestCase extends Illuminate\Foundation\Testing\TestCase
     {
         /**
