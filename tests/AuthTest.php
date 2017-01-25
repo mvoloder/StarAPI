@@ -230,17 +230,20 @@ namespace {
             $this->assertResponseStatus(400);
         }
 
-        public function testDeleteProfileNotLoggedIn()
+        /**
+         * @depends testValidRegistration
+         */
+        public function testDeleteProfileNotLoggedIn($id)
         {
             $this->json(
                 'DELETE',
-                $this->url . 'profiles/',
+                $this->url . 'profiles/' . $id,
                 [
-                    '_id' => '58779e89263add372e348550'
-                ]
-            );
 
-            $this->assertResponseStatus(403);
+                ]
+            )->seeJsonEquals([
+                'error' => 'token_not_provided'
+            ]);
         }
 
         /**
@@ -362,12 +365,13 @@ namespace {
 
         /**
          * @depends testValidLogin
+         * @depends testValidRegistration
          */
-        public function testDeleteUserNotAdmin($token)
+        public function testDeleteUserNotAdmin($token, $id)
         {
             $this->json(
                 'DELETE',
-                $this->url . 'profiles/' . '58887134263add26f70bd9ce',
+                $this->url . 'profiles/' . $id,
                 [],
                 [
                     'Authorization' => $token
