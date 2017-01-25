@@ -2,31 +2,25 @@
 
 namespace {
 
-    use App\Profile;
     use Illuminate\Foundation\Testing\DatabaseMigrations;
-    use Illuminate\Foundation\Testing\WithoutMiddleware;
-    use Illuminate\Support\Facades\Auth;
 
     class AuthTest extends TestCase
     {
         use DatabaseMigrations;
 
-        protected $token;
-        protected $id;
-        private $url = 'api/v1/app/starapi-testing/profiles/';
+        private $url = 'api/v1/app/starapi-testing/';
 
-        public function getUser($id)
+        public function setUp()
         {
-            $this->id = $id;
+            parent::setUp();
 
-            return $this->id = $this->testValidRegistration();
+            $this->seed(AclCollectionSeeder::class);
+            $this->seed(ValidationsSeeder::class);
         }
 
-        public function setToken($token)
+        public function tearDown()
         {
-            $this->token = $token;
-
-            return $this->token = $this->testValidLogin();
+            parent::tearDown();
         }
 
         /**
@@ -35,7 +29,11 @@ namespace {
          */
         public function testEmptyRequestOnLogin()
         {
-            $this->json('POST', '/api/v1/app/starapi-testing/login', [])
+            $this->json(
+                'POST',
+                $this->url . 'login',
+                []
+            )
                 ->seeJsonEquals([
                     'error' => true,
                     'errors' => ['Invalid credentials.']
@@ -47,7 +45,11 @@ namespace {
          */
         public function testInvalidLogin()
         {
-            $this->json('POST', '/api/v1/app/starapi-testing/login', ['name' => 'Sally'])
+            $this->json(
+                'POST',
+                $this->url . 'login',
+                ['name' => 'Sally']
+            )
                 ->seeJsonEquals([
                     'error' => true,
                     'errors' => ['Invalid credentials.']
@@ -61,72 +63,49 @@ namespace {
         {
             $this->json(
                 'POST',
-                '/api/v1/app/starapi-testing/register',
-                [
-                    'name',
-                    'email',
-                    'password',
-                    'repeat password'
-                ]
+                $this->url . 'register',
+                []
             )->seeJsonEquals([
                 'error' => true,
                 'errors' => ['Issue with automatic sign in.']
             ]);
         }
 
-        public function testInvalidRegistration()
-        {
-            $this->json(
-                'POST',
-                '/api/v1/app/starapi-testing/register',
-                [
-                    'name' => 'marko m',
-                    'email' => 'marko@marko.com',
-                    'password' => 'marko123',
-                    'repeat password' => 'marko123'
-                ]
-            );
-
-            if ($this->seeInDatabase('profiles', ['email' => 'marko@marko.com']) === true) {
-                $this->seeJsonEquals([
-                    'errors' => ['The email has already been taken.']
-                ]);
-            }
-        }
-
         public function testValidRegistration()
         {
-            $this->seed(AclCollectionSeeder::class);
-            $this->seed(ValidationsSeeder::class);
-
-            $this->json(
+            $resp = $this->json(
                 'POST',
-                '/api/v1/app/starapi-testing/register',
+                $this->url . 'register',
                 [
                     'name' => 'marko m',
                     'email' => 'marko@marko.com',
                     'password' => 'marko123',
                     'repeat password' => 'marko123'
                 ]
-            );
+            )->seeJsonContains([
+                'name' => 'marko m',
+                'email' => 'marko@marko.com'
+            ]);
 
-            $profile = Profile::where('email', '=', 'marko@marko.com')->first();
+            $data = $resp->response->getContent();
 
-            $this->id = $profile->id;
+            $userId = json_decode($data);
 
-            return $this->id;
+            return $userId->_id;
         }
 
         public function testValidLogin()
         {
             $resp = $this->json(
                 'POST',
-                '/api/v1/app/starapi-testing/login',
+                $this->url . 'login',
                 [
                     'email' => 'marko@marko.com',
                     'password' => 'marko123'
                 ]
-            );
+            )->seeJsonContains([
+                'email' => 'marko@marko.com'
+            ]);
 
             $resp->seeHeader('Authorization');
 
@@ -134,30 +113,30 @@ namespace {
 
             $jwt = $headers->get('Authorization');
 
-            $this->token = $jwt;
+            return $jwt;
+        }
 
-            if ($headers === null) {
-                $this->seeJsonEquals([
-                    'error' => true,
-                    'errors' => ['Authorization header not found.']
-                ]);
-            } elseif ($this->token === null) {
-                $this->seeJsonEquals([
-                    'error' => true,
-                    'errors' => ['JWT invalid']
-                ]);
-            }
-
-            $this->assertResponseOk();
-
-            return $this->token;
+        public function testInvalidRegistration()
+        {
+            $this->json(
+                'POST',
+                $this->url . 'register',
+                [
+                    'name' => 'marko',
+                    'email' => 'marko@marko.com',
+                    'password' => 'marko123',
+                    'repeat password' => 'marko123'
+                ]
+            )->seeJsonEquals([
+                'errors' => ['The email has already been taken.', 'Full name needed, at least 2 words.']
+            ]);
         }
 
         public function testWrongLoginPassword()
         {
             $this->json(
                 'POST',
-                '/api/v1/app/starapi-testing/login',
+                $this->url . 'login',
                 [
                     'email' => 'pero@pero.com',
                     'password' => 'pero123'
@@ -176,7 +155,7 @@ namespace {
         {
             $this->json(
                 'POST',
-                '/api/v1/app/starapi-testing/login',
+                $this->url . 'login',
                 [
                     'email' => 'peo@pero.com',
                     'password' => 'pero1234'
@@ -195,7 +174,7 @@ namespace {
         {
             $this->json(
                 'POST',
-                '/api/v1/app/starapi-testing/register',
+                $this->url . 'register',
                 [
                     'name' => 'mislav',
                     'email' => 'mislav@mislav.com',
@@ -215,7 +194,7 @@ namespace {
         {
             $this->json(
                 'POST',
-                '/api/v1/app/starapi-testing/register',
+                $this->url . 'register',
                 [
                     'name' => 'mislav m',
                     'email' => 'mislav@mislav',
@@ -235,7 +214,7 @@ namespace {
         {
             $this->json(
                 'POST',
-                '/api/v1/app/starapi-testing/register',
+                $this->url . 'register',
                 [
                     'name' => 'mislav m',
                     'email' => 'mislav@mislav.com',
@@ -255,7 +234,7 @@ namespace {
         {
             $this->json(
                 'DELETE',
-                '/api/v1/app/starapi-testing/profiles',
+                $this->url . 'profiles/',
                 [
                     '_id' => '58779e89263add372e348550'
                 ]
@@ -264,14 +243,17 @@ namespace {
             $this->assertResponseStatus(403);
         }
 
-        public function testUserNotFound()
+        /**
+         * @depends testValidLogin
+         */
+        public function testUserNotFound($token)
         {
             $this->json(
                 'GET',
-                'api/v1/app/starapi-testing/profiles/2343423',
+                $this->url . 'profiles/2343423',
                 [],
                 [
-                    'Authorization' => $this->setToken($this->token)
+                    'authorization' => $token
                 ]
             );
 
@@ -283,18 +265,21 @@ namespace {
             $this->assertResponseStatus(404);
         }
 
-        public function testChangePasswordInvalidOldPassword()
+        /**
+         * @depends testValidLogin
+         */
+        public function testChangePasswordInvalidOldPassword($token)
         {
             $this->json(
                 'PUT',
-                'api/v1/app/starapi-testing/profiles/changePassword',
+                $this->url . 'profiles/changePassword',
                 [
                     'oldPassword' => 'marko1255',
                     'newPassword' => 'marko1234',
                     'repeatNewPassword' => 'marko1234'
                 ],
                 [
-                    'Authorization' => $this->setToken($this->token)
+                    'Authorization' => $token
                 ]
             );
 
@@ -305,11 +290,14 @@ namespace {
             ]);
         }
 
-        public function testChangePasswordMissMatch()
+        /**
+         * @depends testValidLogin
+         */
+        public function testChangePasswordMissmatch($token)
         {
             $this->json(
                 'PUT',
-                'api/v1/app/starapi-testing/profiles/changePassword',
+                $this->url . 'profiles/changePassword',
                 [
                     'oldPassword' => 'marko123',
                     'newPassword' => 'marko12345',
@@ -326,63 +314,86 @@ namespace {
             ]);
         }
 
-//        public function testChangePassword()
-//        {
-//            $this->json(
-//                'PUT',
-//                'api/v1/app/starapi-testing/profiles/changePassword',
-//                [
-//                    'oldPassword' => 'marko123',
-//                    'newPassword' => 'marko1234',
-//                    'repeatNewPassword' => 'marko1234'
-//                ],
-//                [
-//                    'Authorization' => $this->setToken($this->token)
-//                ]
-//            );
-//
-//            $this->assertResponseOk();
-//        }
-
-        public function testProfileUpdate()
+        /**
+         * @depends testValidLogin
+         * @depends testValidRegistration
+         */
+        public function testChangePassword($token, $id)
         {
             $this->json(
                 'PUT',
-                $this->url . $this->getUser($this->id),
+                $this->url . 'profiles/changePassword',
+                [
+                    'oldPassword' => 'marko123',
+                    'newPassword' => 'marko1234',
+                    'repeatNewPassword' => 'marko1234'
+                ],
+                [
+                    'Authorization' => $token
+                ]
+            )->seeJsonContains([
+                '_id' => $id
+            ]);
+        }
+
+        /**
+         * @depends testValidLogin
+         * @depends testValidRegistration
+         */
+        public function testProfileUpdate($token, $id)
+        {
+            $this->json(
+                'PUT',
+                $this->url . 'profiles/' . $id,
                 [
                     'slack' => 'testSlack',
                     'trello' => 'testTrello',
                     'github' => 'testGit'
                 ],
                 [
-                    'Authorization' => $this->setToken($this->token)
+                    'Authorization' => $token
                 ]
-            );
-
-            $this->assertResponseOk();
+            )->seeJsonContains([
+                'slack' => 'testSlack',
+                'trello' => 'testTrello',
+                'github' => 'testGit'
+            ]);
         }
 
-//        public function testDelete()
-//        {
-//            $profiles = Profile::all();
-//
-//            foreach ($profiles as $profile) {
-//                if (!$profile instanceof Profile) {
-//                    $this->assertResponseStatus(404);
-//                    break;
-//                } elseif ($profile->admin === true) {
-//                    $this->json(
-//                        'DELETE',
-//                        $this->url . $this->getUser($this->id),
-//                        [],
-//                        [
-//                            'Authorization' => $this->setToken($this->token)
-//                        ]
-//                    );
-//                    $this->assertResponseStatus(200);
-//                    break;
-//                }
-//            }
-//        }
+        /**
+         * @depends testValidLogin
+         */
+        public function testDeleteUserNotAdmin($token)
+        {
+            $this->json(
+                'DELETE',
+                $this->url . 'profiles/' . '58887134263add26f70bd9ce',
+                [],
+                [
+                    'Authorization' => $token
+                ]
+            )->seeJsonEquals([
+                'error' => true,
+                'errors' => ['Insufficient permissions.']
+            ]);
+        }
+
+        /**
+         * @depends testValidLogin
+         * @depends testValidRegistration
+         */
+        public function testDelete($token, $id)
+        {
+            $this->json(
+                'DELETE',
+                $this->url . 'profiles/' . $id,
+                [],
+                [
+                    'Authorization' => $token
+                ]
+            )->seeJsonContains([
+                'id' => [$id]
+            ]);
+        }
     }
 }
