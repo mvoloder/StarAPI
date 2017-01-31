@@ -20,7 +20,8 @@ class Kernel extends ConsoleKernel
         Commands\XpDeduction::class,
         Commands\UnfinishedTasks::class,
         Commands\EmailProfilePerformance::class,
-        Commands\MonthlyMinimumCheck::class
+        Commands\MonthlyMinimumCheck::class,
+        Commands\TaskPriority::class
     ];
 
     /**
@@ -53,5 +54,8 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('employee:minimum:check')
             ->monthlyOn(1, '08:00');
+
+        $schedule->command('slackMessage:send')
+            ->everyThirtyMinutes();
     }
 }

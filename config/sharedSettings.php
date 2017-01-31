@@ -92,7 +92,12 @@ return [
             'Medium',
             'Low'
         ],
-        'floatPrecision' => 2
+        'floatPrecision' => 2,
+        'priorityMapping' => [
+            '1' => 0,
+            '2' => 30,
+            '3' => 120
+        ]
     ],
 
     /**
