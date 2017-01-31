@@ -56,6 +56,6 @@ class Kernel extends ConsoleKernel
             ->monthlyOn(1, '08:00');
 
         $schedule->command('slackMessage:send')
-            ->everyThirtyMinutes();
+            ->everyMinute();
     }
 }

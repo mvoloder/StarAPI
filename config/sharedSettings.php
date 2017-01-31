@@ -94,9 +94,9 @@ return [
         ],
         'floatPrecision' => 2,
         'priorityMapping' => [
-            '1' => 0,
-            '2' => 30,
-            '3' => 120
+            'High' => 0,
+            'Medium' => 30,
+            'Low' => 120
         ]
     ],
 
