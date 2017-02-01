@@ -2,8 +2,6 @@
 
 namespace App\Helpers;
 
-use App\GenericModel;
-
 class Slack
 {
 
@@ -13,11 +11,6 @@ class Slack
 
     public function sendSlackPriorityMessage($recipient, $message, $priority)
     {
-
-        if ($priority === self::HIGH_PRIORITY) {
-            \SlackChat::message($recipient, $message, $priority);
-        } else {
-            \SlackChat::message($recipient, $message, $priority);
-        }
+        \SlackChat::message($recipient, $message, $priority);
     }
 }

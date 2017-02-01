@@ -42,44 +42,44 @@ class TaskPriority extends Command
         GenericModel::setCollection('tasks');
         $tasks = GenericModel::all();
 
-        $date = new \DateTime();
-        $cronTime = $date->format('U');
-
-        $priorityMapping = \Config::get('sharedSettings.internalConfiguration.priorityMapping');
-
-        $message = [];
-        $recipient = ['@mvoloder'];
-        $highPriorityTask = [];
-        $mediumPriorityTask = [];
-        $lowPriorityTask = [];
-
         $priority = \Config::get('sharedSettings.internalConfiguration.taskPriorities');
+
+        $recipient = '@mvoloder';
+        $highPriority = [];
+        $mediumPriority = [];
+        $lowPriority = [];
+
+        foreach ($tasks as $task) {
+            if (empty($task->owner) && ($task->priority === $priority[0])) {
+                $highPriority[] = "High priority task : " . $task->id;
+            }
+            if (empty($task->owner) && ($task->priority === $priority[1])) {
+                $mediumPriority[] = "Medium priority task : " . $task->id;
+            }
+            if (empty($task->owner) && ($task->priority === $priority[2])) {
+                $lowPriority[] = "Low priority task : " . $task->id;
+            }
+        }
 
         $slack = new Slack();
         GenericModel::setCollection('slackMessages');
 
-        foreach ($tasks as $task) {
-            if (empty($task->owner) && ($task->priority === 'High')) {
-                $highPriorityTask[] = $task->id;
-                $message[] = "High priority task : " . $task->id;
-                $slack->sendSlackPriorityMessage($recipient, $message, $priority);
-            }
-            if (empty($task->owner) && ($task->priority === 'Medium')) {
-                $slackMessage = GenericModel::create();
-                $mediumPriorityTask[] = $task->id;
-                $slackMessage->mediumPriorityTask = $task->id;
-                $slackMessage->save();
-                $message[] = "Medium priority task : " . $task->id;
-                $slack->sendSlackPriorityMessage($recipient, $message, $priority);
-            }
-            if (empty($task->owner) && ($task->priority === 'Low')) {
-                $slackMessage = GenericModel::create();
-                $lowPriorityTask[] = $task->id;
-                $slackMessage->lowPriority = $task->id;
-                $slackMessage->save();
-                $message[] = "Low priority task : " . $task->id;
-                $slack->sendSlackPriorityMessage($recipient, $message, $priority);
-            }
+        foreach ($highPriority as $message) {
+            $slack->sendSlackPriorityMessage($recipient, $message, $priority);
+        }
+
+        foreach ($mediumPriority as $message) {
+            $slackMessage = GenericModel::create();
+            $slackMessage->mediumPriority = $message;
+            $slackMessage->save();
+            $slack->sendSlackPriorityMessage($recipient, $message, $priority);
+        }
+
+        foreach ($lowPriority as $message) {
+            $slackMessage = GenericModel::create();
+            $slackMessage->lowPriority = $message;
+            $slackMessage->save();
+            $slack->sendSlackPriorityMessage($recipient, $message, $priority);
         }
     }
 }
