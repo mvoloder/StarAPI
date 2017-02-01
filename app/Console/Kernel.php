@@ -55,7 +55,13 @@ class Kernel extends ConsoleKernel
         $schedule->command('employee:minimum:check')
             ->monthlyOn(1, '08:00');
 
-        $schedule->command('slackMessage:send')
-            ->twiceDaily(9, 14);
+        $schedule->command('slackMessage:send 0')
+            ->hourly();
+
+        $schedule->command('slackMessage:send 30')
+            ->hourly();
+
+        $schedule->command('slackMessage:send 120')
+            ->hourly();
     }
 }
