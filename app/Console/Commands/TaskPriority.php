@@ -68,7 +68,6 @@ class TaskPriority extends Command
 
         $p = $this->argument('priority');
 
-
         if (intval($p) === intval($priorityMapping['High'])) {
             foreach ($highPriority as $message) {
                 $slack->sendSlackPriorityMessage($recipient, $message, $priority);
