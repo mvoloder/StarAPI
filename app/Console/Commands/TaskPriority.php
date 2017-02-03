@@ -39,57 +39,43 @@ class TaskPriority extends Command
      */
     public function handle()
     {
-        GenericModel::setCollection('tasks');
-        $tasks = GenericModel::all();
-
-        $priority = \Config::get('sharedSettings.internalConfiguration.taskPriorities');
-
-        $priorityMapping = \Config::get('sharedSettings.internalConfiguration.priorityMapping');
-
-        $recipient = '@mvoloder';
-        $highPriority = [];
-        $mediumPriority = [];
-        $lowPriority = [];
-
-        foreach ($tasks as $task) {
-            if (empty($task->owner) && ($task->priority === $priority[0])) {
-                $highPriority[] = "High priority task : " . $task->id;
-            }
-            if (empty($task->owner) && ($task->priority === $priority[1])) {
-                $mediumPriority[] = "Medium priority task : " . $task->id;
-            }
-            if (empty($task->owner) && ($task->priority === $priority[2])) {
-                $lowPriority[] = "Low priority task : " . $task->id;
-            }
-        }
+        $priority = \Config::get('sharedSettings.internalConfiguration.priorityMapping');
 
         $slack = new Slack();
+
+        $map = $this->argument('priority');
+
+        $recipient = '@mvoloder';
+        $message = ' Priority!!';
+
         GenericModel::setCollection('slackMessages');
 
-        $p = $this->argument('priority');
+        if (intval($map) === 0) {
+            $slack->sendMessage($recipient, 'High' . $message, $priority);
+        } elseif (intval($map) === 30) {
+            $slackMessage = GenericModel::create();
+            $slackMessage->recipient = $recipient;
+            $slackMessage->message = 'Medium '. $message;
+            $slackMessage->priority = $map;
+            $slackMessage->sent = false;
+            $slackMessage->save();
 
-        if (intval($p) === intval($priorityMapping['High'])) {
-            foreach ($highPriority as $message) {
-                $slack->sendSlackPriorityMessage($recipient, $message, $priority);
-            }
-        }
+            sleep(5); //1800
+            $slack->sendMessage($recipient, $slackMessage->message, $priority);
+            $slackMessage->sent = true;
+            $slackMessage->save();
+        } elseif (intval($map) === 120) {
+            $slackMessage = GenericModel::create();
+            $slackMessage->recipient = $recipient;
+            $slackMessage->message = 'Low' . $message;
+            $slackMessage->priority = $map;
+            $slackMessage->sent = false;
+            $slackMessage->save();
 
-        if (intval($p) === intval($priorityMapping['Medium'])) {
-            foreach ($mediumPriority as $message) {
-                $slackMessage = GenericModel::create();
-                $slackMessage->mediumPriority = $message;
-                $slackMessage->save();
-                $slack->sendSlackPriorityMessage($recipient, $message, $priority);
-            }
-        }
-
-        if (intval($p) === intval($priorityMapping['Low'])) {
-            foreach ($lowPriority as $message) {
-                $slackMessage = GenericModel::create();
-                $slackMessage->lowPriority = $message;
-                $slackMessage->save();
-                $slack->sendSlackPriorityMessage($recipient, $message, $priority);
-            }
+            sleep(10); //7200
+            $slack->sendMessage($recipient, $slackMessage->message, $priority);
+            $slackMessage->sent = true;
+            $slackMessage->save();
         }
     }
 }
